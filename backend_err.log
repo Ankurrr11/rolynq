@@ -1,0 +1,8 @@
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5001
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 985-011-181
+127.0.0.1 - - [06/Apr/2026 10:58:30] "GET /activity HTTP/1.1" 404 -
+127.0.0.1 - - [06/Apr/2026 10:58:44] "GET /activity HTTP/1.1" 404 -

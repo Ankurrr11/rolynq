@@ -1,0 +1,33 @@
+# Rolynq .gitignore
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environment & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+token.json
+credentials.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
