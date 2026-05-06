@@ -9,7 +9,7 @@ env/
 
 # Node / Frontend
 node_modules/
-dist/
+# dist/ removed to allow production hosting
 dist-ssr/
 *.local
 
@@ -31,3 +31,13 @@ credentials.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Large / Temp files
+temp_zip/
+backend.log
+frontend.log
+instance/
+*.mp4
+*.pdf
+*.zip
+*.docx

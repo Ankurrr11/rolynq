@@ -28,10 +28,12 @@ app = Flask(__name__, static_folder="../frontend/dist", static_url_path="")
 CORS(app)
 
 # Database Configuration
-if not os.path.exists('instance'):
-    os.makedirs('instance')
+basedir = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(basedir, 'instance')
+if not os.path.exists(instance_path):
+    os.makedirs(instance_path)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/rolynq.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'rolynq.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
