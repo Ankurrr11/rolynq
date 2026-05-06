@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 
 import requests as http_requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
@@ -28,7 +28,10 @@ app = Flask(__name__, static_folder="../frontend/dist", static_url_path="")
 CORS(app)
 
 # Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///rolynq.db'
+if not os.path.exists('instance'):
+    os.makedirs('instance')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/rolynq.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
