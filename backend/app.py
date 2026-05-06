@@ -48,6 +48,7 @@ class JobRecord(db.Model):
     source = db.Column(db.String(50))
     posted = db.Column(db.String(50))
     score = db.Column(db.Integer)
+    status = db.Column(db.String(50), default="interested") # interested, applied, interviewing, offer, rejected
     data_json = db.Column(db.JSON) # Full job data
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
@@ -999,6 +1000,21 @@ def api_sources():
 @app.route("/")
 def serve():
     return send_from_directory(app.static_folder, 'index.html')
+
+@app.route("/api/job/status", methods=["POST"])
+def api_update_status():
+    d = request.json
+    job_id = d.get("id")
+    new_status = d.get("status")
+    
+    with app.app_context():
+        job = JobRecord.query.filter_by(id=job_id).first()
+        if job:
+            job.status = new_status
+            db.session.commit()
+            log_activity("status_updated", job, detail=f"Moved to {new_status}")
+            return jsonify({"success": True})
+    return jsonify({"error": "Job not found"}), 404
 
 @app.route("/api/search", methods=["POST"])
 def api_search():

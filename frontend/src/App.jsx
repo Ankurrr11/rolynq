@@ -549,6 +549,52 @@ function ConnectorDot({ name, active, free }) {
   </div>
 }
 
+function KanbanBoard({ jobs, onStatusChange }) {
+  const columns = [
+    { key: 'interested', label: 'Interested', color: 'var(--accent)' },
+    { key: 'applied', label: 'Applied', color: 'var(--blue)' },
+    { key: 'interviewing', label: 'Interviewing', color: 'var(--purple)' },
+    { key: 'offer', label: 'Offer', color: 'var(--green)' }
+  ]
+
+  const getColJobs = k => jobs.filter(j => (j.status || 'interested') === k)
+
+  return <div style={{ display: 'flex', gap: 20, overflowX: 'auto', paddingBottom: 20, minHeight: 'calc(100vh - 200px)' }}>
+    {columns.map(col => (
+      <div key={col.key} style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 8px' }}>
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.color }} />
+            {col.label}
+          </h3>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text4)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 10 }}>{getColJobs(col.key).length}</span>
+        </div>
+        
+        <div style={{ background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--border)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+          {getColJobs(col.key).map(j => (
+            <div key={j.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 12, boxShadow: 'var(--shadow-sm)' }} className="card-hover">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', flex: 1 }}>{j.title}</h4>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-bg)', padding: '2px 6px', borderRadius: 4 }}>{j.score || '??'}</div>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>{j.company}</p>
+              
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {columns.filter(c => c.key !== col.key).map(c => (
+                  <button key={c.key} onClick={() => onStatusChange(j.id, c.key)} style={{ fontSize: 9, fontWeight: 700, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', color: 'var(--text4)' }} onMouseOver={e => e.currentTarget.style.borderColor = c.color} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                    To {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {getColJobs(col.key).length === 0 && <div style={{ fontSize: 11, color: 'var(--text4)', textAlign: 'center', padding: '40px 0', fontStyle: 'italic' }}>No jobs here</div>}
+        </div>
+      </div>
+    ))}
+  </div>
+}
+
 function NavItem({ icon: I, label, active, count, onClick }) {
   return <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: active ? 'var(--accent-bg)' : 'transparent', border: 'none', borderRadius: 10, cursor: 'pointer', color: active ? 'var(--accent)' : 'var(--text3)', transition: 'all .2s ease', width: '100%', textAlign: 'left', fontWeight: active ? 700 : 500, fontSize: 13.5 }}>
     <I size={18} style={{ opacity: active ? 1 : .7 }} />
@@ -810,6 +856,7 @@ export default function App() {
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 24 }}>
           <NavItem icon={Search} label="Search" active={view === 'search'} onClick={() => setView('search')} />
+          <NavItem icon={Layout} label="Board" active={view === 'board'} onClick={() => setView('board')} />
           <NavItem icon={BarChart3} label="Pipeline" active={view === 'pipeline'} onClick={() => setView('pipeline')} count={scored.length} />
           <NavItem icon={Zap} label="Hot Leads" active={view === 'hot'} onClick={() => setView('hot')} count={hot} />
           <NavItem icon={Activity} label="Activity" active={view === 'activity'} onClick={() => { setView('activity'); refreshActivity() }} />
@@ -972,7 +1019,14 @@ export default function App() {
               )}
             </div>}
 
-            {view === 'activity' && <div className="fi">
+            {view === 'board' && <KanbanBoard jobs={jobs} onStatusChange={async (id, s) => {
+              try {
+                await fetch(`${API}/job/status`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-User-ID': userId }, body: JSON.stringify({ id, status: s }) });
+                setJobs(p => p.map(j => j.id === id ? { ...j, status: s } : j));
+                notify(`Moved to ${s}`);
+                refreshActivity();
+              } catch (e) { notify(e.message, 'err') }
+            }} />}
               <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, boxShadow: 'var(--shadow)' }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={16} style={{ color: 'var(--accent)' }} />Activity Log</h3>
                 {activity.length === 0 ? <p style={{ fontSize: 13, color: 'var(--text4)', textAlign: 'center', padding: 48 }}>No activity yet. Explore and interact with jobs!</p>
