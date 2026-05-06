@@ -35,6 +35,17 @@ if not os.path.exists(instance_path):
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(instance_path, 'rolynq.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Auto-generate Google Auth files from environment variables for Render
+creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+token_json = os.getenv("GOOGLE_TOKEN_JSON")
+if creds_json:
+    with open(os.path.join(os.path.dirname(__file__), "credentials.json"), "w") as f:
+        f.write(creds_json)
+if token_json:
+    with open(os.path.join(os.path.dirname(__file__), "token.json"), "w") as f:
+        f.write(token_json)
+
 db = SQLAlchemy(app)
 
 # Models
