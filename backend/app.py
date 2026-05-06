@@ -1280,3 +1280,8 @@ def api_outreach():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
+else:
+    # This is for production logging
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    print("Backend application initialized and ready for Gunicorn...")
