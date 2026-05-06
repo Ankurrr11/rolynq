@@ -24,7 +24,7 @@ from lead_finder import find_leads
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="../frontend/dist", static_url_path="")
 CORS(app)
 
 # Database Configuration
@@ -990,6 +990,10 @@ def profile(): return jsonify({"profile": PROFILE, "weights": SCORING_WEIGHTS})
 @app.route("/api/sources")
 def api_sources():
     return jsonify({"sources": {k: {"label":v["label"],"color":v["color"],"free":v["free"]} for k,v in ALL_SOURCES.items()}})
+
+@app.route("/")
+def serve():
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route("/api/search", methods=["POST"])
 def api_search():

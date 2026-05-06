@@ -8,7 +8,7 @@ import {
   ExternalLink as LinkIcon
 } from 'lucide-react'
 
-const API = import.meta.env.VITE_API_URL || '/api'
+const API = '/api'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
