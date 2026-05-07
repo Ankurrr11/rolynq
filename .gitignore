@@ -9,7 +9,7 @@ env/
 
 # Node / Frontend
 node_modules/
-# dist/ removed to allow production hosting
+dist/
 dist-ssr/
 *.local
 

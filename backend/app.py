@@ -24,7 +24,7 @@ from lead_finder import find_leads
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
-app = Flask(__name__, static_folder="../frontend/dist", static_url_path="")
+app = Flask(__name__)
 CORS(app)
 
 # Database Configuration
@@ -75,8 +75,17 @@ class ActivityRecord(db.Model):
 with app.app_context():
     db.create_all()
 
-# In-memory cache for speed, but synced with DB
+# In-memory cache for recent search results (limited to 200 to prevent memory leaks on Render Free Tier)
 job_store = {} 
+MAX_CACHE = 200
+
+def cache_job(job):
+    global job_store
+    if len(job_store) > MAX_CACHE:
+        # Simple cleanup: remove 50 random items if we hit the limit
+        keys = list(job_store.keys())
+        for k in keys[:50]: del job_store[k]
+    job_store[job["id"]] = job
 
 # ═══════════════════════════════════════════════
 # ANKUR'S PROFILE
@@ -1008,7 +1017,11 @@ def api_sources():
 
 @app.route("/")
 def serve():
-    return send_from_directory(app.static_folder, 'index.html')
+    return jsonify({
+        "name": "Rolynq API",
+        "status": "online",
+        "message": "Backend is running. Frontend is hosted on Vercel."
+    })
 
 @app.route("/api/job/status", methods=["POST"])
 def api_update_status():
@@ -1043,7 +1056,7 @@ def api_search():
         for j in jobs: 
             # Instant Salary Estimation
             j["salary_estimate"] = estimate_salary(j)
-            job_store[j["id"]] = j
+            cache_job(j)
             # Save to DB
             if not JobRecord.query.get(j["id"]):
                 db.session.add(JobRecord(id=j["id"], title=j["title"], company=j["company"], 
@@ -1148,7 +1161,16 @@ def api_refetch_job():
 @app.route("/api/email/generate", methods=["POST"])
 def api_gen_email():
     d = request.json
-    job = d.get("job") or job_store.get(d.get("job_id"))
+    job = d.get("job")
+    job_id = d.get("job_id")
+    
+    if not job and job_id:
+        job = job_store.get(job_id)
+        if not job:
+            with app.app_context():
+                rec = JobRecord.query.get(job_id)
+                if rec: job = rec.data_json
+    
     if not job: return jsonify({"error": "Job not found"}), 404
     
     lead_name = d.get("lead_name")
@@ -1196,7 +1218,16 @@ def api_send_email():
 @app.route("/api/sheets/log", methods=["POST"])
 def api_log_sheet():
     d = request.json
-    job = d.get("job") or job_store.get(d.get("job_id"))
+    job = d.get("job")
+    job_id = d.get("job_id")
+    
+    if not job and job_id:
+        job = job_store.get(job_id)
+        if not job:
+            with app.app_context():
+                rec = JobRecord.query.get(job_id)
+                if rec: job = rec.data_json
+                
     if not job: return jsonify({"error": "Job not found"}), 404
     sd = d.get("score_data") or {"total_score":job.get("score"),"breakdown":job.get("score_breakdown",{}),
          "rationale":job.get("rationale",""),"suggested_action":job.get("suggested_action","")}
@@ -1223,7 +1254,16 @@ def api_init(): init_headers(); return jsonify({"ok":True})
 @app.route("/api/notion/create", methods=["POST"])
 def api_notion():
     d = request.json
-    job = d.get("job") or job_store.get(d.get("job_id"))
+    job = d.get("job")
+    job_id = d.get("job_id")
+    
+    if not job and job_id:
+        job = job_store.get(job_id)
+        if not job:
+            with app.app_context():
+                rec = JobRecord.query.get(job_id)
+                if rec: job = rec.data_json
+                
     if not job: return jsonify({"error":"Job not found"}), 404
     sd = d.get("score_data") or {"total_score":job.get("score",0),"breakdown":job.get("score_breakdown",{}),"rationale":job.get("rationale",""),"suggested_action":job.get("suggested_action","")}
     try:
@@ -1235,7 +1275,16 @@ def api_notion():
 @app.route("/api/slack/notify", methods=["POST"])
 def api_slack():
     d = request.json
-    job = d.get("job") or job_store.get(d.get("job_id"))
+    job = d.get("job")
+    job_id = d.get("job_id")
+    
+    if not job and job_id:
+        job = job_store.get(job_id)
+        if not job:
+            with app.app_context():
+                rec = JobRecord.query.get(job_id)
+                if rec: job = rec.data_json
+                
     if not job: return jsonify({"error":"Job not found"}), 404
     sd = d.get("score_data") or {"total_score":job.get("score",0),"breakdown":job.get("score_breakdown",{}),"rationale":job.get("rationale",""),"suggested_action":job.get("suggested_action","")}
     try:
@@ -1307,7 +1356,16 @@ def api_stats():
 @app.route("/api/outreach/generate", methods=["POST"])
 def api_outreach():
     d = request.json
-    job = d.get("job") or job_store.get(d.get("job_id"))
+    job = d.get("job")
+    job_id = d.get("job_id")
+    
+    if not job and job_id:
+        job = job_store.get(job_id)
+        if not job:
+            with app.app_context():
+                rec = JobRecord.query.get(job_id)
+                if rec: job = rec.data_json
+                
     if not job: return jsonify({"error":"Job not found"}), 404
     try:
         outreach = generate_outreach(job, PROFILE)
