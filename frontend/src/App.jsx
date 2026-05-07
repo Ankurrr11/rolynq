@@ -259,7 +259,7 @@ function SettingsView({ connectors, gmailEmail }) {
   </div>
 }
 
-function OutreachModal({ job, defaultFrom, resumeFile, onClose }) {
+function OutreachModal({ job, defaultFrom, resumeFile, onClose, notify }) {
   const [loading, setLoading] = useState(true), [sending, setSending] = useState(false), [sent, setSent] = useState(false)
   const [to, setTo] = useState(job.recruiter_email || ''), [data, setData] = useState(null), [tab, setTab] = useState('email')
   const [copied, setCopied] = useState(false), [findingLeads, setFindingLeads] = useState(false)
@@ -288,6 +288,7 @@ function OutreachModal({ job, defaultFrom, resumeFile, onClose }) {
         console.error(e); 
         setLoading(false); 
         setFindingLeads(false);
+        notify("Failed to generate outreach: " + e.message, "err");
         if (!data) setData({ email: { subject: '', body: '' }, linkedin: { invite: '', message: '' }, leads: [] })
       })
   }
@@ -309,7 +310,10 @@ function OutreachModal({ job, defaultFrom, resumeFile, onClose }) {
       }
       await fetch(`${API}/email/send`, { method: 'POST', headers: { 'X-User-ID': localStorage.getItem('rolynq_user_id') }, body: fd });
       setSent(true)
-    } catch (e) { console.error(e) }
+    } catch (e) { 
+      console.error(e);
+      notify("Failed to send email. Check your Gmail connection in Settings.", "err");
+    }
     setSending(false)
   }
 
@@ -549,7 +553,7 @@ function ConnectorDot({ name, active, free }) {
   </div>
 }
 
-function KanbanBoard({ jobs, onStatusChange }) {
+function KanbanBoard({ jobs, onStatusChange, onEmail }) {
   const columns = [
     { key: 'interested', label: 'Interested', color: 'var(--accent)' },
     { key: 'applied', label: 'Applied', color: 'var(--blue)' },
@@ -579,7 +583,11 @@ function KanbanBoard({ jobs, onStatusChange }) {
               </div>
               <p style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>{j.company}</p>
               
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button onClick={() => onEmail(j)} style={{ fontSize: 9, fontWeight: 700, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--purple-bd)', background: 'var(--purple-bg)', cursor: 'pointer', color: 'var(--purple)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <MessageSquare size={10} /> Contact
+                </button>
+                <div style={{ width: 1, height: 10, background: 'var(--border2)', margin: '0 2px' }} />
                 {columns.filter(c => c.key !== col.key).map(c => (
                   <button key={c.key} onClick={() => onStatusChange(j.id, c.key)} style={{ fontSize: 9, fontWeight: 700, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg2)', cursor: 'pointer', color: 'var(--text4)' }} onMouseOver={e => e.currentTarget.style.borderColor = c.color} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
                     To {c.label}
@@ -843,7 +851,7 @@ export default function App() {
       {toast.t === 'err' ? <AlertCircle size={13} /> : <CheckCircle size={13} />}{toast.m}
     </div>}
 
-    {emailJob && <OutreachModal job={emailJob} defaultFrom={gmailEmail} resumeFile={globalResume} onClose={() => setEmailJob(null)} />}
+    {emailJob && <OutreachModal job={emailJob} defaultFrom={gmailEmail} resumeFile={globalResume} onClose={() => setEmailJob(null)} notify={notify} />}
     {showGlobalResume && <GlobalResumeModal onClose={() => setShowGlobalResume(false)} onSet={f => setGlobalResume(f)} />}
     {scoreJob && <ScoreModal job={scoreJob} onClose={() => setScoreJob(null)} onScored={(j, f) => {
       if (f) setGlobalResume(f)
@@ -1040,7 +1048,7 @@ export default function App() {
               )}
             </div>}
 
-            {view === 'board' && <KanbanBoard jobs={jobs} onStatusChange={async (id, s) => {
+            {view === 'board' && <KanbanBoard jobs={jobs} onEmail={setEmailJob} onStatusChange={async (id, s) => {
               try {
                 await fetch(`${API}/job/status`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-User-ID': userId }, body: JSON.stringify({ id, status: s }) });
                 setJobs(p => p.map(j => j.id === id ? { ...j, status: s } : j));
