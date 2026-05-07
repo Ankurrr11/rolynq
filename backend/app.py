@@ -1017,11 +1017,7 @@ def api_sources():
 
 @app.route("/")
 def serve():
-    return jsonify({
-        "name": "Rolynq API",
-        "status": "online",
-        "message": "Backend is running. Frontend is hosted on Vercel."
-    })
+    return "Rolynq API is Online", 200
 
 @app.route("/api/job/status", methods=["POST"])
 def api_update_status():
