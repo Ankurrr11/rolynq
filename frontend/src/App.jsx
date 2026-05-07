@@ -666,9 +666,20 @@ export default function App() {
   const [filterExp, setFilterExp] = useState('all')
   const [selSrc, setSelSrc] = useState(['linkedin', 'naukri', 'wellfound', 'greenhouse', 'lever'])
   const [connectors, setConnectors] = useState({})
-  const [gmailEmail, setGmailEmail] = useState('')
   const [activity, setActivity] = useState([])
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('rolynq_history') || '[]'))
+
+  useEffect(() => {
+    // Initial fetch of saved jobs
+    fetch(`${API}/jobs`, { headers: { 'X-User-ID': userId } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.jobs) setJobs(d.jobs);
+      })
+      .catch(e => console.error("Failed to fetch jobs:", e));
+    
+    refreshActivity();
+  }, [userId]);
 
   useEffect(() => {
     localStorage.setItem('rolynq_history', JSON.stringify(history.slice(0, 10)))
@@ -911,10 +922,20 @@ export default function App() {
               <p style={{ fontSize: 14, color: 'var(--text4)' }}>AI-powered career matching engine</p>
             </div>}
 
-            {jobs.length > 0 && <div style={{ display: 'flex', gap: 16, marginBottom: 24 }} className="fi">
+            {view === 'board' && <div style={{ marginBottom: 32 }} className="fi">
+              <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>Job Board</h1>
+              <p style={{ fontSize: 14, color: 'var(--text4)' }}>Manage your application pipeline</p>
+            </div>}
+
+            {view === 'activity' && <div style={{ marginBottom: 32 }} className="fi">
+              <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>Activity</h1>
+              <p style={{ fontSize: 14, color: 'var(--text4)' }}>Recent actions and platform updates</p>
+            </div>}
+
+            {['search', 'pipeline', 'hot', 'board'].includes(view) && jobs.length > 0 && <div style={{ display: 'flex', gap: 16, marginBottom: 24 }} className="fi">
               <StatCard label="TOTAL JOBS" value={dj.length} sub={<>
                 {jobs.length > dj.length ? (
-                  <button onClick={() => setFilterDate('anytime')} style={{ background: 'none', border: 'none', color: 'var(--accent)', padding: 0, fontSize: 10, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
+                  <button onClick={() => {setFilterDate('anytime'); setFilterExp('all');}} style={{ background: 'none', border: 'none', color: 'var(--accent)', padding: 0, fontSize: 10, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
                     {jobs.length - dj.length} hidden (Show all {jobs.length})
                   </button>
                 ) : `${jobs.length} total found`}
@@ -924,7 +945,7 @@ export default function App() {
               <StatCard label="HOT LEADS" value={hot} color="var(--green)" sub="score >= 75" icon={Zap} />
             </div>}
 
-            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px', marginBottom: 24, boxShadow: 'var(--shadow)' }}>
+            {view === 'search' && <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px', marginBottom: 24, boxShadow: 'var(--shadow)' }}>
               <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                 <div style={{ flex: 2, position: 'relative' }}>
                   <Search size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text4)' }} />
@@ -970,7 +991,7 @@ export default function App() {
               {jobs.length === 0 && <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                 {QS.map(q => <button key={q} onClick={() => setQuery(q)} style={{ background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text3)', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all .2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--surface3)'} onMouseOut={e => e.currentTarget.style.background = 'var(--surface2)'}>{q}</button>)}
               </div>}
-            </div>
+            </div>}
 
             {jobs.length > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, padding: '12px 16px', background: 'var(--accent-bg)', border: '1px solid var(--accent-bd)', borderRadius: 12 }} className="fi">
               <div style={{ flex: 1 }}>
@@ -981,7 +1002,7 @@ export default function App() {
               {connectors.sheets && <Btn variant="secondary" icon={FileSpreadsheet} onClick={doLogAll}>Sync to Sheets</Btn>}
             </div>}
 
-            {jobs.length > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+            {['search', 'pipeline', 'hot'].includes(view) && jobs.length > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <select value={filterAct} onChange={e => setFilter(e.target.value)} style={{ padding: '6px 12px', fontSize: 12, borderRadius: 8 }}>
                   <option value="all">Filter: All Actions</option><option value="apply">Apply</option><option value="email">Email</option><option value="save">Save</option><option value="skip">Skip</option>
@@ -1006,7 +1027,7 @@ export default function App() {
               <SkeletonCard />
             </div>}
 
-            {view !== 'activity' && !searching && <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {['search', 'pipeline', 'hot'].includes(view) && !searching && <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {vj.map((j, i) => <div key={j.id || i} className="fi" style={{ animationDelay: `${i * 0.05}s` }}>
                 <JobCard job={j} onScore={doScore} scoring={scoringId === j.id} onEmail={setEmailJob} onLogSheet={doSheet} onNotion={doNotion} onSlack={doSlack} connectors={connectors} />
               </div>)}
@@ -1027,6 +1048,8 @@ export default function App() {
                 refreshActivity();
               } catch (e) { notify(e.message, 'err') }
             }} />}
+
+            {view === 'activity' && (
               <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 16, boxShadow: 'var(--shadow)' }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={16} style={{ color: 'var(--accent)' }} />Activity Log</h3>
                 {activity.length === 0 ? <p style={{ fontSize: 13, color: 'var(--text4)', textAlign: 'center', padding: 48 }}>No activity yet. Explore and interact with jobs!</p>
@@ -1039,7 +1062,7 @@ export default function App() {
                     </div>)}
                   </div>}
               </div>
-            </div>}
+            )}
 
             {view === 'hot' && jobs.length > 0 && vj.length === 0 && <div style={{ textAlign: 'center', padding: 64, color: 'var(--text4)' }}><Zap size={32} style={{ marginBottom: 12, opacity: .3 }} className="float" /><p style={{ fontSize: 14, fontWeight: 500 }}>No hot leads found yet. Try scoring some jobs!</p></div>}
             {view === 'pipeline' && jobs.length > 0 && vj.length === 0 && <div style={{ textAlign: 'center', padding: 64, color: 'var(--text4)' }}><BarChart3 size={32} style={{ marginBottom: 12, opacity: .3 }} className="float" /><p style={{ fontSize: 14, fontWeight: 500 }}>Your pipeline is empty. Start grading jobs to see them here.</p></div>}

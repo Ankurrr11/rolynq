@@ -996,8 +996,6 @@ from scoring_engine import evaluate_job
 # ROUTES
 # ═══════════════════════════════════════════════
 
-job_store = {}
-
 @app.route("/api/health")
 def health(): return jsonify({"status": "ok", "timestamp": datetime.datetime.now().isoformat()})
 
@@ -1022,6 +1020,10 @@ def api_update_status():
         job = JobRecord.query.filter_by(id=job_id).first()
         if job:
             job.status = new_status
+            # Update data_json as well to persist status in the JSON blob
+            data = dict(job.data_json)
+            data["status"] = new_status
+            job.data_json = data
             db.session.commit()
             log_activity("status_updated", job, detail=f"Moved to {new_status}")
             return jsonify({"success": True})
@@ -1268,9 +1270,15 @@ def api_connectors():
 def api_jobs():
     try:
         recs = JobRecord.query.all()
-        jobs = [r.data_json for r in recs]
+        jobs = []
+        for r in recs:
+            j = dict(r.data_json)
+            j["status"] = r.status # Ensure DB status overrides JSON status
+            jobs.append(j)
         return jsonify({"jobs":sorted(jobs,key=lambda j:j.get("score") or -1,reverse=True)})
-    except: return jsonify({"jobs": []})
+    except Exception as e: 
+        print(f"Error fetching jobs: {e}")
+        return jsonify({"jobs": []})
 
 @app.route("/api/activity", methods=["GET"])
 def api_activity():
