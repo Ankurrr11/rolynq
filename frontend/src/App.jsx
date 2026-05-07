@@ -8,7 +8,7 @@ import {
   ExternalLink as LinkIcon
 } from 'lucide-react'
 
-const API = '/api'
+const API = import.meta.env.VITE_API_URL || '/api'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -676,8 +676,20 @@ export default function App() {
   const [connectors, setConnectors] = useState({})
   const [activity, setActivity] = useState([])
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('rolynq_history') || '[]'))
+  const [serverStatus, setServerStatus] = useState('checking') // checking, online, offline
 
   useEffect(() => {
+    const checkHealth = () => {
+      fetch(`${API}/health`)
+        .then(r => {
+          if (r.ok) setServerStatus('online')
+          else setServerStatus('offline')
+        })
+        .catch(() => setServerStatus('offline'))
+    }
+    checkHealth()
+    const ival = setInterval(checkHealth, 30000)
+
     // Initial fetch of saved jobs
     fetch(`${API}/jobs`, { headers: { 'X-User-ID': userId } })
       .then(r => r.json())
@@ -687,6 +699,7 @@ export default function App() {
       .catch(e => console.error("Failed to fetch jobs:", e));
     
     refreshActivity();
+    return () => clearInterval(ival)
   }, [userId]);
 
   useEffect(() => {
@@ -913,6 +926,13 @@ export default function App() {
             ))}
           </div>
         </div>}
+
+        <div style={{ marginTop: 'auto', padding: '16px 12px 0', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: serverStatus === 'online' ? '#10b981' : serverStatus === 'offline' ? '#ef4444' : '#f59e0b', boxShadow: serverStatus === 'online' ? '0 0 10px rgba(16,185,129,0.4)' : 'none', transition: 'all .3s' }} />
+          <span style={{ fontSize: 9, fontWeight: 800, color: 'var(--text4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            {serverStatus === 'online' ? 'Backend Live' : serverStatus === 'offline' ? 'Backend Sleeping' : 'Connecting...'}
+          </span>
+        </div>
       </aside>
 
       {/* Main */}
