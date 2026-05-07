@@ -8,7 +8,8 @@ import {
   ExternalLink as LinkIcon
 } from 'lucide-react'
 
-const API = import.meta.env.VITE_API_URL || '/api'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://rolynq.onrender.com'
+const API = API_BASE.endsWith('/api') ? API_BASE : `${API_BASE}/api`
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
